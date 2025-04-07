@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
+
+/* Сброс стандартных отступов */
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Отключаем глобальную прокрутку */
+}
+
+#starfield-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+
+.desk-container {
+  background-color: #d9c7a7;
+  height: 100vh;
+  width: 100vw;
+  padding: 2rem;
+  box-sizing: border-box; /* Учитываем padding в размерах */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: 
+    radial-gradient(circle at center, #c1b08a 0%, #d9c7a7 100%);
+  overflow: hidden; /* Скрываем всё, что выходит за границы */
+  position: relative;
+  z-index: 1;
+}
+
+
+.notebook-page {
+  margin-right: 10%;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  max-height: 90vh;
+  box-shadow: 
+    0 0 25px rgba(0, 0, 0, 0.3),
+    inset 0 0 15px rgba(0, 0, 0, 0.1);
+  background: #fef9e7;
+  position: relative;
+  border-radius: 2px;
+  overflow: hidden;
+   z-index: 2;
+}
+
+.notebook-page::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #d5d5d5;
+  box-shadow: 
+    -1px 0 1px rgba(0,0,0,0.1),
+    1px 0 1px rgba(255,255,255,0.8);
+  z-index: 1;
+}
+
+.page-left, .page-right {
+  flex: 1;
+  padding: 20px;
+  box-sizing: border-box;
+  background-image:
+    linear-gradient(to right, #e2e2e2 1px, transparent 1px),
+    linear-gradient(to bottom, #f0e6d6 1px, transparent 1px);
+  background-size: 24px 24px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-left {
+  border-right: 1px solid #e8e8e8;
+}
+
+.page-left::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #f0e6d6,
+    #f0e6d6 15px,
+    #e0d6c6 15px,
+    #e0d6c6 30px
+  );
+}
+
+.notebook-bg {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  font-family: 'Shadows Into Light', cursive;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 1200px) {
+  .desk-container {
+    padding: 1rem;
+  }
+  
+  .notebook-page {
+    width: 95%;
+    height: auto;
+    max-height: 80vh;
+    aspect-ratio: 1.414;
+  }
+}
+.handwritten-result {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  font-family: 'Shadows Into Light', cursive;
+  font-size: 24px;
+  font-weight: bold;
+  z-index: 10;
+  padding: 5px 15px;
+  border-radius: 3px;
+  transform: rotate(-5deg);
+  background-color: rgba(255, 255, 255, 0); /* Slight transparency */
+
+  
+}
+
+.handwritten-result.equivalent {
+  color: #c62828; /* Красный цвет для "Эквивалентны" */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  background-color: rgba(255, 255, 255, 0);
+}
+
+.handwritten-result.not-equivalent {
+  color: #c62828; /* Красный цвет для "Не эквивалентны" */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  background-color: rgba(255, 255, 255, 0);
+}
+
+/* Обновляем стиль кнопки */
+.equivalence-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: #c62828; /* Красный цвет */
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-family: 'Shadows Into Light', cursive;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 100;
+  transition: all 0.3s ease;
+}
+
+.equivalence-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+
+.equivalence-button:disabled {
+  background-color: #9e9e9e;
+  cursor: not-allowed;
+}
