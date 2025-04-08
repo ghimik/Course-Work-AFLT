@@ -1,15 +1,10 @@
+from equivalency import are_equivalent
 from final_state import has_reachable_final_state
 import pytest
 from models import State, Transition, DFA
 from difference import build_difference_automaton
 from minimize import minimize_dfa
 from util import dfa_from_string
-
-def are_equivalent(dfa1, dfa2):
-    diff1 = build_difference_automaton(dfa1, dfa2)
-    diff2 = build_difference_automaton(dfa2, dfa1)
-    return not has_reachable_final_state(diff1) and not has_reachable_final_state(diff2)
-
 
 def make_dfa_1():
     # Простой ДКА, распознающий язык a*

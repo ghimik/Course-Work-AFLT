@@ -69,5 +69,5 @@ def remove_unreachable_states(dfa: DFA) -> DFA:
                 if next_state:
                     frontier.add(next_state)
 
-    reachable_transitions = {t for t in dfa.transitions if t.from_state in reachable and t.to_state in reachable}
+    reachable_transitions = {t for t in dfa.transitions if t.source in reachable and t.target in reachable}
     return DFA(states=reachable, alphabet=dfa.alphabet, transitions=reachable_transitions, start_state=dfa.start_state)

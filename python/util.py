@@ -45,3 +45,4 @@ def dfa_from_string(description):
         transitions=transitions,
         start_state=states[description['start']]
     )
+

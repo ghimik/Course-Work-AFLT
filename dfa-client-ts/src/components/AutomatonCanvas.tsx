@@ -5,6 +5,7 @@ import rough from 'roughjs/bin/rough';
 import { getArrow } from 'perfect-arrows';
 import './AutomatonCanvas.css';
 import { DFA } from '../types';
+import { checkDifference, checkProduct, MinimezedDFA, minimizeAutomaton } from '../api';
 
 type StateNode = {
   id: string;
@@ -14,19 +15,36 @@ type StateNode = {
   isStart: boolean;
 };
 
+const mapToServerFormat = (node: StateNode) => {
+  return {
+    name: node.id,
+    is_final: node.isFinal
+  }
+}
+
+const findStartNode = (nodes: StateNode[]) => {
+  const allStartNodes = nodes.filter(n => n.isStart);
+  if (allStartNodes.length == 0)
+    return null;
+  else
+    return mapToServerFormat(allStartNodes[0]);
+}
+
 type Transition = {
-  from: StateNode;
-  to: StateNode;
+  source: StateNode;
+  target: StateNode;
   symbol: string;
   path: string;
 };
 
 type Props = {
   height: number;
-  onAutomatonUpdate: (automaton: DFA) => void
+  onAutomatonUpdate: (automaton: DFA) => void;
+  otherAutomaton?: DFA | null; // Получаем второй автомат через пропс
+
 };
 
-const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
+const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate, otherAutomaton }) => {
   const [nodes, setNodes] = useState<StateNode[]>([]);
   const [transitions, setTransitions] = useState<Transition[]>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -34,22 +52,131 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
   const rc = useMemo(() => rough.svg(document.createElementNS('http://www.w3.org/2000/svg', 'svg')), []);
   const nodeSvgCache = useMemo(() => new Map<string, string>(), []);
 
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+
+  const getCurrentDFA = () => {
+    const dfa: DFA = {
+      states: nodes.map(mapToServerFormat),
+      transitions: transitions.map(t => ({
+        source: mapToServerFormat(t.source),
+        symbol: t.symbol,
+        target: mapToServerFormat(t.target)
+      })),
+      alphabet: Array.from(new Set(transitions.map(t => t.symbol))),
+      start_state: findStartNode(nodes)
+    };
+    return dfa;
+  }
+
+  const renderNewDFA = (dfa: MinimezedDFA) => {
+    const newNodes = dfa.states.map((state) => ({
+      id: state.name,
+      isFinal: state.is_final,
+      isStart: dfa.start_state == state.name,
+      x: Math.random() * 200 + 50,  // Более свободный разброс для видимости
+      y: Math.random() * 200 + 50
+    }));
+
+    const newTransitions = dfa.transitions
+      .map((t) => {
+        const sourceNode = newNodes.find(n => n.id === t.source);
+        const targetNode = newNodes.find(n => n.id === t.target);
+
+        if (sourceNode && targetNode) {
+          const [sx, sy, cx, cy, ex, ey] = getArrow(
+            sourceNode.x, sourceNode.y, targetNode.x, targetNode.y,
+            { padStart: 20, padEnd: 20, bow: 0.1, stretch: 0.1 }
+          );
+          const arrowPath = `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`;
+          return {
+            symbol: t.symbol,
+            source: sourceNode,
+            target: targetNode,
+            path: arrowPath
+          };
+        } else {
+          return null;
+        }
+      })
+      .filter((t): t is Transition => t !== null);
+
+    setNodes(newNodes);
+    setTransitions(newTransitions);
+  }
+
+  const handleMinimize = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    try {
+      const dfa: DFA = getCurrentDFA();
+  
+      const minimized = await minimizeAutomaton(dfa);
+      
+      renderNewDFA(minimized)
+      
+    } catch (error) {
+      console.error('Ошибка минимизации левого автомата', error);
+    }
+  };
+
+  const handleDifference = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    try {
+      if (!otherAutomaton) {
+        console.error('Нет второго автомата для операции разности');
+        return;
+      }
+
+      const dfa: DFA = getCurrentDFA();
+      const difference = await checkDifference([dfa, otherAutomaton]);
+      renderNewDFA(difference);
+    } catch (error) {
+      console.error('Ошибка выполнения операции разности', error);
+    }
+  };
+
+  // New handler for product operation
+  const handleProduct = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    try {
+      if (!otherAutomaton) {
+        console.error('Нет второго автомата для операции произведения');
+        return;
+      }
+
+      const dfa: DFA = getCurrentDFA();
+      const product = await checkProduct([dfa, otherAutomaton]);
+      renderNewDFA(product);
+    } catch (error) {
+      console.error('Ошибка выполнения операции произведения', error);
+    }
+  };
+  
+
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control') {
+        setIsCtrlPressed(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control') {
+        setIsCtrlPressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   useEffect(() => {
     if (onAutomatonUpdate) {
-      const dfa: DFA = {
-        states: nodes.map(node => ({
-          name: node.id,
-          is_final: node.isFinal
-        })),
-        transitions: transitions.map(t => ({
-          from: t.from.id,
-          symbol: t.symbol,
-          to: t.to.id
-        })),
-        alphabet: Array.from(new Set(transitions.map(t => t.symbol))),
-        start_state: nodes.find(n => n.isStart)?.id || ''
-      };
-      onAutomatonUpdate(dfa);
+      onAutomatonUpdate(getCurrentDFA());
     }
   }, [nodes, transitions, onAutomatonUpdate]);
 
@@ -63,7 +190,7 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
       return -20; // Смещаем текст ниже
     }
     // Для горизонтальных переходов
-    return 0;
+    return -20;
   };
 
   const getNodeSvg = useCallback((node: StateNode) => {
@@ -76,12 +203,12 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
 
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("width", "80");
-    svg.setAttribute("height", "80");
-    svg.setAttribute("viewBox", "0 0 80 80");
+    svg.setAttribute("width", "50");
+    svg.setAttribute("height", "50");
+    svg.setAttribute("viewBox", "0 0 50 50");
 
     // Основной круг
-    const outerCircle = rc.circle(40, 40, 35, {
+    const outerCircle = rc.circle(25, 25, 35, {
       roughness: 0.8,
       stroke: isSelected ? 'red' : (node.isStart ? 'blue' : 'black'),
       fill: 'rgba(255, 255, 255, 0)',
@@ -92,9 +219,9 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
 
     // Внутренний круг для конечного состояния
     if (node.isFinal) {
-      const innerCircle = rc.circle(40, 40, 25, {
+      const innerCircle = rc.circle(25, 25, 25, {
         roughness: 0.8,
-        stroke: isSelected ? 'red' : 'black',
+        stroke: isSelected ? 'red' : (node.isStart ? 'blue' : 'black'),
         fill: 'rgba(255, 255, 255, 0)',
         strokeWidth: isSelected ? 3 : 2,
         seed: parseInt(node.id.replace(/\D/g, '').slice(0, 9)) || 1
@@ -104,8 +231,8 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
 
     // Текст состояния
     const text = document.createElementNS(svgNS, "text");
-    text.setAttribute("x", "40");
-    text.setAttribute("y", "45");
+    text.setAttribute("x", "25");
+    text.setAttribute("y", "30");
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("font-size", "18");
     text.setAttribute("fill", isSelected ? "red" : "black");
@@ -119,7 +246,7 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Создаем новую ноду только по ЛКМ
-    if (e.button !== 0) return;
+    if (e.button !== 0 || isCtrlPressed) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -145,20 +272,36 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
         // Циклическое переключение: обычное → стартовое → конечное → обычное
         if (!node.isStart && !node.isFinal) {
           return { ...node, isStart: true, isFinal: false };
-        } else if (node.isStart) {
-          return { ...node, isStart: false, isFinal: true };
-        } else {
+        } else if (node.isStart && !node.isFinal) {
+          return { ...node, isStart: true, isFinal: true };  // Начальное и конечное
+        } else if (!node.isStart && node.isFinal) {
           return { ...node, isStart: false, isFinal: false };
+        } else {
+          return { ...node, isStart: false, isFinal: true };
         }
       }
       return node;
     }));
   };
 
+  const handleTransitionClick = (e: React.MouseEvent, transition: Transition) => {
+    console.log("ckick fixed")
+    if (isCtrlPressed) {
+      setTransitions(transitions.filter(t => t !== transition));
+    }
+  };
+
   const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
     // Обрабатываем только ЛКМ
     if (e.button !== 0) return;
     e.stopPropagation();
+
+    if (isCtrlPressed) {
+      // Удаляем состояние
+      setNodes(nodes.filter(node => node.id !== nodeId));
+      setTransitions(transitions.filter(t => t.source.id !== nodeId && t.target.id !== nodeId));
+      return;
+    }
     
     if (selectedNode === null) {
       setSelectedNode(nodeId);
@@ -192,7 +335,7 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
             );
             path = `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`;
           }
-          setTransitions([...transitions, { from, to, symbol, path }]);
+          setTransitions([...transitions, { source: from, target: to, symbol, path }]);
         }
       }
       setSelectedNode(null);
@@ -242,7 +385,7 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
         </defs>
 
         {transitions.map((t, i) => {
-          const yOffset = getTextOffset(t.from.y, t.to.y);
+          const yOffset = getTextOffset(t.source.y, t.target.y);
           return (
             <g key={i}>
               <path
@@ -251,13 +394,17 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
                 strokeWidth="2"
                 fill="none"
                 markerEnd="url(#arrowhead)"
+                onClick={(e) => handleTransitionClick(e, t)}
+                style={{ cursor: 'pointer', pointerEvents: 'all' }}
               />
               <text
-                x={(t.from.x + t.to.x) / 2}
-                y={(t.from.y + t.to.y) / 2 + yOffset}
+                x={(t.source.x + t.target.x) / 2}
+                y={(t.source.y + t.target.y) / 2 + yOffset}
                 fontSize="24"
                 fill="black"
                 textAnchor="middle"
+                onClick={(e) => handleTransitionClick(e, t)}
+                style={{ cursor: 'pointer', pointerEvents: 'all' }}
               >
                 {t.symbol}
               </text>
@@ -265,8 +412,27 @@ const AutomatonCanvas: React.FC<Props> = ({ height, onAutomatonUpdate }) => {
           );
         })}
       </svg>
+
+      <div className="buttons-container">
+        <button
+          className="minimize-button"
+          onClick={handleMinimize}
+        >
+          Минимизировать автомат
+        </button>
+
+        <button className="difference-button" onClick={handleDifference}>
+          Разность автомата
+        </button>
+
+        <button className="product-button" onClick={handleProduct}>
+          Произведение автомата
+        </button>
+      </div>
+
     </div>
   );
 };
 
 export default AutomatonCanvas;
+

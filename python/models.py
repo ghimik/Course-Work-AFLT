@@ -14,24 +14,24 @@ class State:
 
 
 class Transition:
-    def __init__(self, from_state: State, symbol: str, to_state: State):
-        self.from_state = from_state
+    def __init__(self, source: State, symbol: str, target: State):
+        self.source = source
         self.symbol = symbol
-        self.to_state = to_state
+        self.target = target
 
     def __repr__(self):
-        return f"Transition({self.from_state} --{self.symbol}--> {self.to_state})"
+        return f"Transition({self.source} --{self.symbol}--> {self.target})"
 
     def __eq__(self, other):
         return (
             isinstance(other, Transition) and
-            self.from_state == other.from_state and
+            self.source == other.source and
             self.symbol == other.symbol and
-            self.to_state == other.to_state
+            self.target == other.target
         )
 
     def __hash__(self):
-        return hash((self.from_state, self.symbol, self.to_state))
+        return hash((self.source, self.symbol, self.target))
 
 
 class DFA:
@@ -46,7 +46,7 @@ class DFA:
         """Создаёт удобную структуру данных для быстрого доступа к переходам."""
         transition_dict = {}
         for t in self.transitions:
-            transition_dict[(t.from_state, t.symbol)] = t.to_state
+            transition_dict[(t.source, t.symbol)] = t.target
         return transition_dict
 
     def get_next_state(self, current_state: State, symbol: str) -> State | None:
@@ -64,4 +64,4 @@ class DFA:
 
 
     def __repr__(self):
-        return f"DFA(states={self.states}, alphabet={self.alphabet}, start_state={self.start_state})"
+        return f"DFA(states={self.states}, alphabet={self.alphabet}, start_state={self.start_state}, transtitions={self.transitions})"

@@ -5,16 +5,16 @@ export interface State {
   }
   
   export interface Transition {
-    from: string;
+    source: State;
     symbol: string;
-    to: string;
+    target: State;
   }
   
   export interface DFA {
     states: State[];
     transitions: Transition[];
     alphabet: string[];
-    start_state: string;
+    start_state: State | null;
   }
   
   export interface EquivalenceResponse {

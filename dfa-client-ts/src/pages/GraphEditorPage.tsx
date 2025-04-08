@@ -1,7 +1,7 @@
 // GraphEditorPage.tsx
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AutomatonCanvas from '../components/AutomatonCanvas';
-import { checkEquivalence, mockCheckEquivalence } from '../api';
+import { checkEquivalence, minimizeAutomaton, mockCheckEquivalence } from '../api';
 import '../styles/notebook.css';
 import { DFA } from '../types';
 
@@ -11,6 +11,7 @@ const GraphEditorPage: React.FC = () => {
   const [isChecking, setIsChecking] = useState(false);
   const [equivalenceResult, setEquivalenceResult] = useState<boolean | null>(null);
   const [message, setMessage] = useState<string|null>(null);
+
 
   const { pageHeight, pageWidth } = useMemo(() => {
     const maxHeight = Math.min(window.innerHeight * 0.85, 900);
@@ -37,7 +38,7 @@ const GraphEditorPage: React.FC = () => {
     try {
       // Используйте mockCheckEquivalence для тестов без бекенда
       // или checkEquivalence для реальных запросов
-      const result = await mockCheckEquivalence([leftAutomaton, rightAutomaton]);
+      const result = await checkEquivalence([leftAutomaton, rightAutomaton]);
       setEquivalenceResult(result.equivalent);
       setMessage(result.equivalent? 'Эквивалентны, Кириллов!': 'Не эквивалентны, Кириллов!');
       
@@ -48,7 +49,6 @@ const GraphEditorPage: React.FC = () => {
       setIsChecking(false);
     }
   };
-
 
   // Функции для обновления автоматов (должны вызываться из AutomatonCanvas)
   const updateLeftAutomaton = useCallback((automaton: DFA) => {
@@ -132,16 +132,21 @@ const GraphEditorPage: React.FC = () => {
         maxWidth: '95vw'
       }}>
         <div className="page-left">
-          <AutomatonCanvas 
-            height={canvasHeight} 
-            onAutomatonUpdate={updateLeftAutomaton}
-          />
+        <AutomatonCanvas 
+          height={canvasHeight} 
+          onAutomatonUpdate={updateLeftAutomaton}
+          otherAutomaton={rightAutomaton}
+        />
+
         </div>
         <div className="page-right">
-          <AutomatonCanvas 
-            height={canvasHeight} 
-            onAutomatonUpdate={updateRightAutomaton}
-          />
+        <AutomatonCanvas 
+          height={canvasHeight} 
+          onAutomatonUpdate={updateRightAutomaton}
+          otherAutomaton={leftAutomaton}
+        />
+
+          
           {/* Добавляем результат прямо на страницу тетради */}
           {equivalenceResult !== null && (
             <div className={`handwritten-result ${equivalenceResult ? 'equivalent' : 'not-equivalent'}`}>
@@ -158,6 +163,8 @@ const GraphEditorPage: React.FC = () => {
       >
         {isChecking ? 'Проверяем...' : 'Проверить на эквивалентность'}
       </button>
+
+
     </div>
   );
 };
