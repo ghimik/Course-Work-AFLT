@@ -13,6 +13,7 @@
     "@excalidraw/excalidraw": "^0.18.0",
     "@types/react-router-dom": "^5.3.3",
     "@use-gesture/react": "^10.3.1",
+    "dagre": "^0.8.5",
     "framer-motion": "^12.6.3",
     "perfect-arrows": "^0.3.7",
     "react": "^19.0.0",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@types/dagre": "^0.7.52",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

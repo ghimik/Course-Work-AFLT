@@ -49,3 +49,54 @@ button:hover {
     transform: rotate(0deg);
     box-shadow: 2px 2px 0 #555;
 }
+/* Стили для таблицы */
+.transition-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Shadows Into Light', cursive;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    font-weight: bold;
+
+  }
+  
+  .transition-table th,
+  .transition-table td {
+    padding: 10px;
+    border: 2px dashed #888;
+    text-align: center;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .transition-table th {
+    background-color: #fffbe6;
+    text-transform: uppercase;
+  }
+  
+  .transition-table td input {
+    border: none; /* Убираем границу */
+    padding: 5px;
+    font-family: 'Shadows Into Light', cursive;
+    font-size: 14px;
+    font-weight: bold;
+
+    width: 80%;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0); /* Легкая прозрачность */
+    color: #333;
+    transition: background-color 0.2s ease;
+  }
+  
+  .transition-table td input:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .transition-table td input:disabled {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #aaa;
+  }
+  

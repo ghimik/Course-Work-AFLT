@@ -9,19 +9,26 @@ def find_partition(state, partitions):
     return None
 
 def refine_partitions(dfa, partitions):
-    """Итеративно уточняет разбиение состояний."""
+    """Итеративно уточняет разбиение состояний с учетом переходов и финальности."""
     while True:
+        print("partition iteration start, have partitions: ", partitions)
         new_partitions = []
         for part in partitions:
             groups = defaultdict(set)
             for state in part:
-                signature = tuple(find_partition(dfa.get_next_state(state, symbol), partitions) for symbol in dfa.alphabet)
+                signature = tuple(
+                    (find_partition(dfa.get_next_state(state, symbol), partitions)) 
+                    for symbol in dfa.alphabet
+                )
                 groups[signature].add(state)
             new_partitions.extend(groups.values())
 
+        print("partition iteration end, have partitions: ", new_partitions)
         if new_partitions == partitions:
+            print("partition stabilized")
             return partitions  # Разбиение стабилизировалось
         partitions = new_partitions
+
 
 
 def build_minimized_dfa(dfa, partitions):
@@ -32,6 +39,7 @@ def build_minimized_dfa(dfa, partitions):
         for idx, part in index_to_part.items()
     }
     new_transitions = set()
+
 
     for part, new_state in new_states.items():
         for symbol in dfa.alphabet:
@@ -49,8 +57,12 @@ def build_minimized_dfa(dfa, partitions):
 
 def minimize_dfa(dfa: DFA) -> DFA:
     """Минимизирует ДКА с помощью алгоритма Хопкрофта."""
+    
+    final_states = {s for s in dfa.states if s.is_final}
     dfa = remove_unreachable_states(dfa) 
     final_states = {s for s in dfa.states if s.is_final}
+    dfa = remove_dead_states(dfa)
+
     non_final_states = dfa.states - final_states
     partitions = refine_partitions(dfa, [final_states, non_final_states])
     return build_minimized_dfa(dfa, partitions)
@@ -63,11 +75,39 @@ def remove_unreachable_states(dfa: DFA) -> DFA:
     while frontier:
         state = frontier.pop()
         if state not in reachable:
+            print("found reacheble state: ", state)
             reachable.add(state)
+            print("add new reacheable state, set=", reachable)
             for symbol in dfa.alphabet:
                 next_state = dfa.get_next_state(state, symbol)
                 if next_state:
+                    print("add new state to frontier", next_state, "; frontier=", frontier)
                     frontier.add(next_state)
+                    print("add new state to frontier, ", "; frontier=", frontier)
+
 
     reachable_transitions = {t for t in dfa.transitions if t.source in reachable and t.target in reachable}
     return DFA(states=reachable, alphabet=dfa.alphabet, transitions=reachable_transitions, start_state=dfa.start_state)
+
+def remove_dead_states(dfa: DFA) -> DFA:
+    """Удаляет мертвые состояния — те, из которых нельзя попасть в финальное состояние."""
+    reverse_graph = defaultdict(set)
+
+    # Построим обратный граф
+    for t in dfa.transitions:
+        reverse_graph[t.target].add((t.source, t.symbol))
+
+    # Начнем поиск из финальных состояний
+    alive = set()
+    frontier = {s for s in dfa.states if s.is_final}
+
+    while frontier:
+        state = frontier.pop()
+        if state not in alive:
+            alive.add(state)
+            for prev_state, _ in reverse_graph[state]:
+                frontier.add(prev_state)
+
+    # Фильтруем состояния и переходы
+    alive_transitions = {t for t in dfa.transitions if t.source in alive and t.target in alive}
+    return DFA(states=alive, alphabet=dfa.alphabet, transitions=alive_transitions, start_state=dfa.start_state)

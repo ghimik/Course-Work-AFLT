@@ -1,7 +1,11 @@
 import argparse
 import json
 from typing import Optional
-from your_dfa_module import DFA, State, Transition, build_difference_automaton, are_equivalent, minimize_dfa
+
+from difference import build_difference_automaton, build_product_automaton
+from equivalency import are_equivalent
+from minimize import minimize_dfa
+from models import *
 
 def dfa_from_json(data):
     """Полное чтение, десериализация объектов через JSON"""
@@ -94,6 +98,8 @@ def main():
     parser.add_argument('--difference', action='store_true', help="Построить автомат разности")
     parser.add_argument('--minimize', action='store_true', help="Минимизировать автомат")
     parser.add_argument('--equivalent', action='store_true', help="Проверить эквивалентность автоматов")
+    parser.add_argument('--product', action='store_true', help="Построить автомат произведения двух ДКА")
+
     args = parser.parse_args()
 
     if not (args.difference or args.minimize or args.equivalent):
@@ -103,11 +109,13 @@ def main():
     # Загрузим два ДКА
     dfa1 = load_dfa(args.input_file, args.input, args.full)
     dfa2 = None
-    if args.difference or args.equivalent:
+    if args.difference or args.equivalent or args.product:
         dfa2 = load_dfa(args.input_file, args.input, args.full)
 
     if args.difference:
-        result = build_difference_automaton(dfa1, dfa2)
+        result = build_difference_automaton(dfa1, dfa2) 
+    elif args.product:
+        result = build_product_automaton(dfa1, dfa2)
     elif args.minimize:
         result = minimize_dfa(dfa1)
     elif args.equivalent:
