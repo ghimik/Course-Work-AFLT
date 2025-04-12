@@ -5,6 +5,7 @@ def create_initial_state(dfa1, dfa2, state_map, queue):
     start_pair = (dfa1.start_state, dfa2.start_state)
     if not start_pair[0] or not start_pair[1]:
         raise ValueError("В одном из автоматов отсутствует стартовое состояние!")
+    
     new_start_state = State(f"({start_pair[0].name},{start_pair[1].name})")
     state_map[start_pair] = new_start_state
     queue.append(start_pair)
@@ -68,6 +69,11 @@ def build_product_automaton(dfa1: DFA, dfa2: DFA) -> DFA:
 
 def build_difference_automaton(dfa1: DFA, dfa2: DFA) -> DFA:
     """Создаёт автомат разности для двух ДКА."""
+    if not dfa1.start_state:
+        return DFA(set(), set(), set(), None)  # Пустой автомат
+    if not dfa2.start_state:
+        return dfa1
+    
     new_transitions = set()
     state_map = {}
     queue = []

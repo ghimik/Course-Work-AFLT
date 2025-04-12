@@ -11,7 +11,6 @@ def find_partition(state, partitions):
 def refine_partitions(dfa, partitions):
     """Итеративно уточняет разбиение состояний с учетом переходов и финальности."""
     while True:
-        print("partition iteration start, have partitions: ", partitions)
         new_partitions = []
         for part in partitions:
             groups = defaultdict(set)
@@ -23,9 +22,7 @@ def refine_partitions(dfa, partitions):
                 groups[signature].add(state)
             new_partitions.extend(groups.values())
 
-        print("partition iteration end, have partitions: ", new_partitions)
         if new_partitions == partitions:
-            print("partition stabilized")
             return partitions  # Разбиение стабилизировалось
         partitions = new_partitions
 
@@ -63,6 +60,26 @@ def minimize_dfa(dfa: DFA) -> DFA:
     final_states = {s for s in dfa.states if s.is_final}
     dfa = remove_dead_states(dfa)
 
+    if not dfa.transitions:
+        # Если нет переходов, то автомат может быть либо пустым, либо состоять из одного состояния
+        if dfa.start_state.is_final:
+            # Если стартовое состояние также является финальным, создаем ДКА с одним состоянием
+            single_state = State(name="q0", is_final=True)
+            return DFA(
+                states={single_state},
+                alphabet=set(),
+                transitions=set(),
+                start_state=single_state
+            )
+        else:
+            # В противном случае возвращаем пустой ДКА
+            return DFA(
+                states=set(),
+                alphabet=set(),
+                transitions=set(),
+                start_state=None
+            )
+
     non_final_states = dfa.states - final_states
     partitions = refine_partitions(dfa, [final_states, non_final_states])
     return build_minimized_dfa(dfa, partitions)
@@ -75,15 +92,11 @@ def remove_unreachable_states(dfa: DFA) -> DFA:
     while frontier:
         state = frontier.pop()
         if state not in reachable:
-            print("found reacheble state: ", state)
             reachable.add(state)
-            print("add new reacheable state, set=", reachable)
             for symbol in dfa.alphabet:
                 next_state = dfa.get_next_state(state, symbol)
                 if next_state:
-                    print("add new state to frontier", next_state, "; frontier=", frontier)
                     frontier.add(next_state)
-                    print("add new state to frontier, ", "; frontier=", frontier)
 
 
     reachable_transitions = {t for t in dfa.transitions if t.source in reachable and t.target in reachable}

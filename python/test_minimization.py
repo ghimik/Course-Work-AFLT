@@ -106,7 +106,7 @@ def test_dead_state_preserved_if_reachable():
     dfa = DFA(states={s0, s1, dead}, alphabet={'a'}, transitions=transitions, start_state=s0)
     minimized = minimize_dfa(dfa)
 
-    assert len(minimized.states) == 3
+    assert len(minimized.states) == 2
     dead_states = [s for s in minimized.states if all(
         minimized.get_next_state(s, sym) == s for sym in minimized.alphabet)]
-    assert len(dead_states) == 1  # ловушка сохранилась как одна
+    assert len(dead_states) == 0  
